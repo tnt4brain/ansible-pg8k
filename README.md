@@ -6,12 +6,12 @@ Ansible modules for PostgreSQL - plain drop-in for your project.
 
 ## What is this for?
 
-If you ever had to install psycopg2, you've definitely came across that dependency hell: libraries, libraries and libraries - tons of them. This project nulls out said dependency hassle.
+If you ever had to install psycopg2, you've definitely came across that dependency hell: libraries, libraries and libraries - tons of them. This project nulls out said dependency hassle: everything works out-of-the-box, you don't have to install anything. The guest star here is "pg8000": pure-Python PostgreSQL driver, with minor modifications to support its loading and usage by Ansible.
 
 ## Requirements
 
 * CentOS/RHEL 7.x;
-* Ansible 2.9.x;
+* Ansible >=2.9.x;
 * Python >=3.6.x;
 * PostgreSQL >=10.x (this was debugged with Postgres 12, though)
 
