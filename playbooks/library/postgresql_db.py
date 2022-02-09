@@ -201,7 +201,6 @@ from ansible.module_utils.six import iteritems
 from ansible.module_utils.six.moves import shlex_quote
 from ansible.module_utils._text import to_native
 
-
 class NotSupportedError(Exception):
     pass
 
@@ -244,7 +243,7 @@ def get_db_info(cursor, db):
     WHERE datname = (%s)
     """
     cursor.execute(query, [db])
-    return cursor.fetchone()
+    return pgutils.dict_wrap(cursor, cursor.fetchone())
 
 
 def db_exists(cursor, db):
@@ -272,18 +271,15 @@ def db_create(cursor, db, owner, template, encoding, lc_collate, lc_ctype, conn_
         if template:
             query_fragments.append('TEMPLATE %s' % pg_quote_identifier(template, 'database'))
         if encoding:
-            query_fragments.append('ENCODING %(enc)s')
-            param_list.append(params['encoding'])
+            query_fragments.append('ENCODING %s' % pg8000.native.literal(encoding))
         if lc_collate:
-            query_fragments.append('LC_COLLATE %(collate)s')
-            param_list.append(params['collate'])
+            query_fragments.append('LC_COLLATE %s' % pg8000.native.literal(lc_collate))
         if lc_ctype:
-            query_fragments.append('LC_CTYPE %(ctype)s')
-            param_list.append(params['ctype'])
+            query_fragments.append('LC_CTYPE %s' % pg8000.native.literal(lc_ctype))
         if tablespace:
             query_fragments.append('TABLESPACE %s' % pg_quote_identifier(tablespace, 'tablespace'))
         if conn_limit:
-            query_fragments.append("CONNECTION LIMIT %(conn_limit)s" % {"conn_limit": conn_limit})
+            query_fragments.append('CONNECTION LIMIT %s' % pg8000.native.literal(conn_limit))
         query = ' '.join(query_fragments)
         cursor.execute(query, param_list)
         return True
