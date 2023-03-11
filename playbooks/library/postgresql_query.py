@@ -296,7 +296,8 @@ def main():
     rowcount = cursor.rowcount
     if rowcount != 0:
         try:
-            query_result = [dict(row) for row in cursor.fetchall()]
+            keys = [k[0] for k in cursor.description]
+            query_result = [dict(zip(keys,row)) for row in cursor.fetchall()]
         except db_connection.ProgrammingError as e:
             if to_native(e) == 'no results to fetch':
                 query_result = {}
