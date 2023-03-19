@@ -67,7 +67,7 @@ def postgres_common_argument_spec():
     """
     return dict(
         login_user=dict(default='postgres'),
-        login_password=dict(default=''), # no_log=True),
+        login_password=dict(default='', no_log=True),
         login_host=dict(default=''),
         login_unix_socket=dict(default=''),
         port=dict(type='int', default=5432, aliases=['login_port']),
