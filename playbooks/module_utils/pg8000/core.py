@@ -23,7 +23,7 @@ from .exceptions import DatabaseError, InterfaceError
 
 
 def pack_funcs(fmt):
-    struc = Struct(f"!{fmt}")
+    struc = Struct("!{fmt}".format(fmt=fmt))
     return struc.pack, struc.unpack_from
 
 
@@ -198,7 +198,7 @@ class CoreConnection:
             elif v is None:
                 del init_params[k]
             elif not isinstance(v, (bytes, bytearray)):
-                raise InterfaceError(f"The parameter {k} can't be of type {type(v)}.")
+                raise InterfaceError("The parameter {k} can't be of type {typev}.".format(k=k,typev=type(v)))
 
         self.user = init_params["user"]
 
@@ -220,8 +220,8 @@ class CoreConnection:
                 )
             except socket.error as e:
                 raise InterfaceError(
-                    f"Can't create a connection to host {host} and port {port} "
-                    f"(timeout is {timeout} and source_address is {source_address})."
+                    "Can't create a connection to host {host} and port {port}"+
+                     "(timeout is {timeout} and source_address is {source_address}).".format(host=host, port=port, timeout=timeout, source_address=source_address)
                 ) from e
 
         elif unix_sock is not None:
@@ -577,11 +577,11 @@ class CoreConnection:
 
         elif auth_code in (2, 4, 6, 7, 8, 9):
             raise InterfaceError(
-                f"Authentication method {auth_code} not supported by pg8000."
+                "Authentication method {auth_code} not supported by pg8000.".format(auth_code)
             )
         else:
             raise InterfaceError(
-                f"Authentication method {auth_code} not recognized by pg8000."
+                "Authentication method {auth_code} not recognized by pg8000.".format(auth_code)
             )
 
     def handle_READY_FOR_QUERY(self, data, ps):
@@ -660,9 +660,9 @@ class CoreConnection:
                 oids = param_oids
             else:
                 oids = [(p if i is None else i) for p, i in zip(param_oids, input_oids)]
-            self.log.append(f"Query: {statement}")
-            self.log.append(f"Vals: {vals}")
-            self.log.append(f"OIDs: {oids}")
+            self.log.append("Query: {statement}".format(statement))
+            self.log.append("Vals: {vals}".format(vals))
+            self.log.append("OIDs: {oids}".format(oids))
             self.send_PARSE(NULL_BYTE, statement, oids)
             self._write(SYNC_MSG)
             self._flush()

@@ -281,7 +281,8 @@ class Cursor:
                 else:
                     cls = ProgrammingError
 
-                raise cls(f"{msg}\nQuery:{statement}\nParams:{vals}\nLog: {self.connection.log}")
+#                raise cls(f"{msg}\nQuery:{statement}\nParams:{vals}\nLog: {self.connection.log}")
+                raise cls("{msg}\nQuery:{statement}\nParams:{vals}\nLog: {log}".format(msg=msg,statement=statement,vals=vals,log=self.connection.log))
             else:
                 raise ProgrammingError(msg)
 

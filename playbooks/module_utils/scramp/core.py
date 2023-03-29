@@ -1,5 +1,6 @@
 import hashlib
 import unicodedata
+import sys
 from enum import IntEnum, unique
 from functools import wraps
 from operator import attrgetter
@@ -39,14 +40,14 @@ def _check_stage(Stages, current_stage, next_stage):
     if current_stage is None:
         if next_stage != 1:
             raise ScramException(
-                f"The method {Stages(1).name} must be called first.")
+                "The method {stage} must be called first.").format(stage=Stages(1).name)
     elif current_stage == 4:
         raise ScramException(
             "The authentication sequence has already finished.")
     elif next_stage != current_stage + 1:
         raise ScramException(
-            f"The next method to be called is "
-            f"{Stages(current_stage + 1).name}, not this method.")
+            "The next method to be called is \n"+
+            "{stage}, not this method.".format(stage=Stages(current_stage + 1).name))
 
 
 class ScramException(Exception):
@@ -55,7 +56,7 @@ class ScramException(Exception):
         self.server_error = server_error
 
     def __str__(self):
-        s_str = '' if self.server_error is None else f' {self.server_error}'
+        s_str = '' if self.server_error is None else ' {error}'.format(error=self.server_error)
         return super().__str__() + s_str
 
 
@@ -95,15 +96,17 @@ def make_channel_binding(name, ssl_socket):
         if hash_algo == 'sha256':
             hash_f = hashlib.sha256
         else:
-            raise ScramException(f"Hash algorithm {hash_algo} not recognized.")
+            raise ScramException("Hash algorithm {hash_algo} not recognized.".format(hash_algo))
 
         return ('tls-server-end-point', hash_f(cert_bin).digest())
     else:
-        raise ScramException(f"Channel binding name {name} not recognized.")
+        raise ScramException("Channel binding name {name} not recognized.".format(name))
 
 
 class ScramMechanism():
-    MECH_LOOKUP = {
+
+    if sys.version_info >= (3,6):
+      MECH_LOOKUP = {
         'SCRAM-SHA-1': (hashlib.sha1, False, 4096, 0),
         'SCRAM-SHA-1-PLUS': (hashlib.sha1, True, 4096, 1),
         'SCRAM-SHA-256': (hashlib.sha256, False, 4096, 2),
@@ -112,13 +115,23 @@ class ScramMechanism():
         'SCRAM-SHA-512-PLUS': (hashlib.sha512, True, 4096, 5),
         'SCRAM-SHA3-512': (hashlib.sha3_512, False, 10000, 6),
         'SCRAM-SHA3-512-PLUS': (hashlib.sha3_512, True, 10000, 7),
-    }
+      }
+    else:
+      MECH_LOOKUP = {
+        'SCRAM-SHA-1': (hashlib.sha1, False, 4096, 0),
+        'SCRAM-SHA-1-PLUS': (hashlib.sha1, True, 4096, 1),
+        'SCRAM-SHA-256': (hashlib.sha256, False, 4096, 2),
+        'SCRAM-SHA-256-PLUS': (hashlib.sha256, True, 4096, 3),
+        'SCRAM-SHA-512': (hashlib.sha512, False, 4096, 4),
+        'SCRAM-SHA-512-PLUS': (hashlib.sha512, True, 4096, 5),
+      }
+
 
     def __init__(self, mechanism='SCRAM-SHA-256'):
         if mechanism not in MECHANISMS:
             raise ScramException(
-                f"The mechanism name '{mechanism}' is not supported. The "
-                f"supported mechanisms are {MECHANISMS}.")
+                "The mechanism name '{mechanism}' is not supported. The "+
+                "supported mechanisms are {MECHANISMS}.").format(mechanism=mechanism, MECHANISMS=MECHANISMS)
         self.name = mechanism
         self.hf, self.use_binding, self.iteration_count, self.strength = \
             self.MECH_LOOKUP[mechanism]
@@ -354,7 +367,7 @@ def _make_gs2_header(channel_binding):
         return 'n,,'
     else:
         channel_type, _ = channel_binding
-        return f'p={channel_type},,'
+        return 'p={channel_type},,'.format(channel_type)
 
 
 def _make_cbind_input(channel_binding):
@@ -377,7 +390,7 @@ def _get_client_first(username, c_nonce, channel_binding):
         raise ScramException(
             e.args[0], SERVER_ERROR_INVALID_USERNAME_ENCODING)
 
-    bare = ','.join((f'n={u}', f'r={c_nonce}'))
+    bare = ','.join(('n={u}'.format(u), 'r={c_nonce}'.format(c_nonce)))
     gs2_header = _make_gs2_header(channel_binding)
     return bare, gs2_header + bare
 
@@ -415,13 +428,13 @@ def _set_client_first(client_first, s_nonce, channel_binding):
         cb_name = gs2_cbind_flag.split('=')[-1]
         if cb_name != channel_type:
             raise ScramException(
-                f"Received channel binding name {cb_name} but this server "
-                f"supports the channel binding name {channel_type}.",
+                "Received channel binding name {cb_name} but this server "+
+                "supports the channel binding name {channel_type}.".format(cb_name, channel_type),
                 SERVER_ERROR_UNSUPPORTED_CHANNEL_BINDING_TYPE)
 
     else:
         raise ScramException(
-            f"Received GS2 flag {gs2_char} which isn't recognized.",
+            "Received GS2 flag {gs2_char} which isn't recognized.".format(gs2_char),
             SERVER_ERROR_OTHER_ERROR)
 
     client_first_bare = client_first[second_comma + 1:]
@@ -435,7 +448,7 @@ def _set_client_first(client_first, s_nonce, channel_binding):
 
 def _get_server_first(
         nonce, salt, iterations, client_first_bare, channel_binding):
-    sfirst = ','.join((f'r={nonce}', f's={salt}', f'i={iterations}'))
+    sfirst = ','.join(('r={nonce}'.format(nonce), 's={salt}'.format(salt), 'i={iterations}'.format(iterations)))
     auth_msg = _make_auth_message(
         nonce, client_first_bare, sfirst, channel_binding)
     return auth_msg, sfirst
@@ -445,7 +458,7 @@ def _set_server_first(
         server_first, c_nonce, client_first_bare, channel_binding):
     msg = _parse_message(server_first)
     if 'e' in msg:
-        raise ScramException(f"The server returned the error: {msg['e']}")
+        raise ScramException("The server returned the error: {msge}".format(msge=msg['e']))
     nonce = msg['r']
     salt = msg['s']
     iterations = int(msg['i'])
@@ -520,13 +533,13 @@ def _set_client_final(
 
 
 def _get_server_final(server_signature, error):
-    return f'v={server_signature}' if error is None else f'e={error}'
+    return 'v={server_signature}'.format(server_signature) if error is None else 'e={error}'.format(error)
 
 
 def _set_server_final(message, server_signature):
     msg = _parse_message(message)
     if 'e' in msg:
-        raise ScramException(f"The server returned the error: {msg['e']}")
+        raise ScramException("The server returned the error: {msge}".format(msge=msg['e']))
 
     if server_signature != msg['v']:
         raise ScramException(
