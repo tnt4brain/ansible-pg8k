@@ -159,7 +159,7 @@ def interval_in(data):
     for n in ["weeks", "months", "years", "decades", "centuries", "millennia"]:
         if n in t:
             raise InterfaceError(
-                f"Can't fit the interval {t} into a datetime.timedelta."
+                "Can't fit the interval {t} into a datetime.timedelta.".format(t=t)
             )
 
     return Timedelta(**t)
@@ -657,12 +657,12 @@ def array_inspect(array):
     try:
         array_oid = PG_ARRAY_TYPES[oid]
     except KeyError:
-        raise InterfaceError(f"oid {oid} not supported as array contents")
+        raise InterfaceError("oid {oid} not supported as array contents".format(oid=oid))
 
     try:
         return PY_TYPES[array_oid]
     except KeyError:
-        raise InterfaceError(f"array oid {array_oid} not supported")
+        raise InterfaceError("array oid {array_oid} not supported".format(array_oid))
 
 
 def _make_array_out(ar, adapter_f):
@@ -714,7 +714,7 @@ def bytes_array_out(ar):
             val = "NULL"
 
         else:
-            val = f'"\\{bytes_out(v)}"'
+            val = '"\\{val}"'.format(val=bytes_out(v))
 
         result.append(val)
 
